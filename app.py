@@ -290,7 +290,8 @@ with st.sidebar:
     st.code("Order Loss = (User + System) / Tổng đơn")
 
 if not uploaded:
-    st.info("Upload file **All Order** để bắt đầu.")if uploaded and not st.session_state.run_analysis:
+    st.info("Upload file **All Order** để bắt đầu.") 
+    if uploaded and not st.session_state.run_analysis:
     st.info("📁 File đã được chọn. Nhấn **🚀 Phân tích** để bắt đầu xử lý.")
     st.stop()
     st.markdown("""
