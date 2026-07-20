@@ -277,7 +277,8 @@ if "run_analysis" not in st.session_state:
 with st.sidebar:
     st.header("1. Upload dữ liệu")
     uploaded = st.file_uploader("All Order (.xlsx)", type=["xlsx"])
-    st.caption("App tự dò dòng header và nhận diện cột.")if uploaded is not None:
+    st.caption("App tự dò dòng header và nhận diện cột.")
+    if uploaded is not None:
     if st.button("🚀 Phân tích", use_container_width=True, type="primary"):
         st.session_state.run_analysis = True
 
@@ -291,6 +292,13 @@ with st.sidebar:
 
 if not uploaded:
     st.info("Upload file **All Order** để bắt đầu.") 
+    st.markdown("""
+### MVP hiện có
+- Tổng quan DFR / User / Order Loss
+- Region, Creator, Product, Pricing
+- Timeline tài khoản quảng cáo theo ngày tạo đơn
+- Xuất bảng Excel
+""")
     if uploaded and not st.session_state.run_analysis:
     st.info("📁 File đã được chọn. Nhấn **🚀 Phân tích** để bắt đầu xử lý.")
     st.stop()
