@@ -270,7 +270,7 @@ def timeline_analysis(df: pd.DataFrame, timeline_df: pd.DataFrame):
 # UI
 # -----------------------------
 st.title("📊 TNT Insight AI")
-st.caption("MVP v0.3 — TikTok Shop Delivery Analytics")
+st.caption("MVP v0.4 — TikTok Shop Delivery Analytics")
 
 SESSION_DEFAULTS = {
     "run_analysis": False,
@@ -278,7 +278,6 @@ SESSION_DEFAULTS = {
     "analyzed_signature": None,
     "raw_df": None,
     "processing_error": None,
-    "uploader_nonce": 0,
 }
 
 for key, default_value in SESSION_DEFAULTS.items():
@@ -291,7 +290,6 @@ with st.sidebar:
     uploaded = st.file_uploader(
         "All Order (.xlsx)",
         type=["xlsx"],
-        key=f"all_order_uploader_{st.session_state.uploader_nonce}",
     )
 
     st.caption("Chọn file, sau đó bấm **Phân tích** để xác nhận.")
@@ -326,12 +324,8 @@ with st.sidebar:
         )
 
     if reset_clicked:
-        st.session_state.run_analysis = False
-        st.session_state.uploaded_signature = None
-        st.session_state.analyzed_signature = None
-        st.session_state.raw_df = None
-        st.session_state.processing_error = None
-        st.session_state.uploader_nonce += 1
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
         st.cache_data.clear()
         st.rerun()
 
@@ -359,17 +353,19 @@ if analyze_clicked:
         progress.progress(15, text="Đang tải dữ liệu từ file Excel...")
         file_bytes = uploaded.getvalue()
 
-        progress.progress(40, text="Đang nhận diện dòng tiêu đề và các cột...")
+        progress.progress(40, text="Đang nhận diện dòng tiêu đề...")
         parsed_df = read_excel_file(file_bytes, uploaded.name)
 
-        progress.progress(75, text="Đang lưu dữ liệu vào bộ nhớ phiên làm việc...")
+        progress.progress(70, text="Đang chuẩn hóa dữ liệu...")
         st.session_state.raw_df = parsed_df
+
+        progress.progress(90, text="Đang lưu dữ liệu vào bộ nhớ phiên...")
         st.session_state.analyzed_signature = current_signature
         st.session_state.run_analysis = True
         st.session_state.processing_error = None
 
         progress.progress(100, text=f"Hoàn tất: đã đọc {len(parsed_df):,} dòng dữ liệu.")
-        st.success("✅ Đã xử lý file thành công. Dashboard đang được tạo...")
+        st.toast("Phân tích dữ liệu thành công", icon="✅")
     except Exception as exc:
         st.session_state.raw_df = None
         st.session_state.run_analysis = False
