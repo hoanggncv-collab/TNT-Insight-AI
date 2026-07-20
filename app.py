@@ -271,37 +271,58 @@ def timeline_analysis(df: pd.DataFrame, timeline_df: pd.DataFrame):
 # UI
 # -----------------------------
 st.title("📊 TNT Insight AI")
-st.caption("MVP v0.1 — TikTok Shop Delivery Analytics")
+st.caption("MVP v0.2 — TikTok Shop Delivery Analytics")
+
 if "run_analysis" not in st.session_state:
     st.session_state.run_analysis = False
+
+if "uploaded_signature" not in st.session_state:
+    st.session_state.uploaded_signature = None
+
 with st.sidebar:
     st.header("1. Upload dữ liệu")
-    uploaded = st.file_uploader("All Order (.xlsx)", type=["xlsx"])
-    st.caption("App tự dò dòng header và nhận diện cột.")
-    if uploaded is not None:
-    if st.button("🚀 Phân tích", use_container_width=True, type="primary"):
-        st.session_state.run_analysis = True
 
-    if st.button("🔄 Reset", use_container_width=True):
-        st.session_state.run_analysis = False
-        st.rerun()
+    uploaded = st.file_uploader(
+        "All Order (.xlsx)",
+        type=["xlsx"],
+        key="all_order_uploader",
+    )
+
+    st.caption("Chọn file, sau đó bấm **Phân tích** để xác nhận.")
+
+    if uploaded is not None:
+        signature = (uploaded.name, uploaded.size)
+        if st.session_state.uploaded_signature != signature:
+            st.session_state.uploaded_signature = signature
+            st.session_state.run_analysis = False
+        st.success(f"Đã chọn: {uploaded.name}")
+
+    analyze_col, reset_col = st.columns(2)
+
+    with analyze_col:
+        if st.button(
+            "🚀 Phân tích",
+            type="primary",
+            use_container_width=True,
+            disabled=uploaded is None,
+        ):
+            st.session_state.run_analysis = True
+
+    with reset_col:
+        if st.button("🔄 Reset", use_container_width=True):
+            st.session_state.run_analysis = False
+            st.session_state.uploaded_signature = None
+            st.cache_data.clear()
+            st.rerun()
+
     st.divider()
     st.header("2. Công thức")
     st.code("DFR = System / (Tổng đơn − User)")
     st.code("Order Loss = (User + System) / Tổng đơn")
 
-if not uploaded:
-    st.info("Upload file **All Order** để bắt đầu.") 
-    st.markdown("""
-### MVP hiện có
-- Tổng quan DFR / User / Order Loss
-- Region, Creator, Product, Pricing
-- Timeline tài khoản quảng cáo theo ngày tạo đơn
-- Xuất bảng Excel
-""")
-    if uploaded and not st.session_state.run_analysis:
-    st.info("📁 File đã được chọn. Nhấn **🚀 Phân tích** để bắt đầu xử lý.")
-    st.stop()
+if uploaded is None:
+    st.info("Upload file **All Order**, sau đó bấm **🚀 Phân tích**.")
+
     st.markdown("""
 ### MVP hiện có
 - Tổng quan DFR / User / Order Loss
@@ -311,7 +332,13 @@ if not uploaded:
 """)
     st.stop()
 
-file_bytes = uploaded.getvalue()
+if not st.session_state.run_analysis:
+    st.info("📁 File đã sẵn sàng. Bấm **🚀 Phân tích** ở thanh bên trái để bắt đầu.")
+    st.stop()
+
+with st.spinner("Đang đọc và xử lý dữ liệu..."):
+    file_bytes = uploaded.getvalue()
+
 try:
     df_raw = read_excel_file(file_bytes, uploaded.name)
 except Exception as exc:
