@@ -1,0 +1,31 @@
+{
+  "products": {
+    "Foundation": {
+      "keywords": [
+        "foundation",
+        "qise",
+        "vellia"
+      ],
+      "skus": [
+        "TNT2.20001-1",
+        "TNT2.20001-2"
+      ]
+    },
+    "Zencolor / Exfoliating": {
+      "keywords": [
+        "zencolor",
+        "exfoliating",
+        "peeling gel"
+      ]
+    }
+  },
+  "price_bands": [
+    "≤109",
+    "110–119",
+    "120–129",
+    "130–139",
+    "140–149",
+    "150–159",
+    "≥160"
+  ]
+}
