@@ -272,18 +272,27 @@ def timeline_analysis(df: pd.DataFrame, timeline_df: pd.DataFrame):
 # -----------------------------
 st.title("📊 TNT Insight AI")
 st.caption("MVP v0.1 — TikTok Shop Delivery Analytics")
-
+if "run_analysis" not in st.session_state:
+    st.session_state.run_analysis = False
 with st.sidebar:
     st.header("1. Upload dữ liệu")
     uploaded = st.file_uploader("All Order (.xlsx)", type=["xlsx"])
-    st.caption("App tự dò dòng header và nhận diện cột.")
+    st.caption("App tự dò dòng header và nhận diện cột.")if uploaded is not None:
+    if st.button("🚀 Phân tích", use_container_width=True, type="primary"):
+        st.session_state.run_analysis = True
+
+    if st.button("🔄 Reset", use_container_width=True):
+        st.session_state.run_analysis = False
+        st.rerun()
     st.divider()
     st.header("2. Công thức")
     st.code("DFR = System / (Tổng đơn − User)")
     st.code("Order Loss = (User + System) / Tổng đơn")
 
 if not uploaded:
-    st.info("Upload file **All Order** để bắt đầu.")
+    st.info("Upload file **All Order** để bắt đầu.")if uploaded and not st.session_state.run_analysis:
+    st.info("📁 File đã được chọn. Nhấn **🚀 Phân tích** để bắt đầu xử lý.")
+    st.stop()
     st.markdown("""
 ### MVP hiện có
 - Tổng quan DFR / User / Order Loss
