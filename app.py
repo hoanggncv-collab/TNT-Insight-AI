@@ -1,4 +1,3 @@
-
 import io
 import re
 from datetime import date, datetime
@@ -271,13 +270,20 @@ def timeline_analysis(df: pd.DataFrame, timeline_df: pd.DataFrame):
 # UI
 # -----------------------------
 st.title("📊 TNT Insight AI")
-st.caption("MVP v0.2 — TikTok Shop Delivery Analytics")
+st.caption("MVP v0.3 — TikTok Shop Delivery Analytics")
 
-if "run_analysis" not in st.session_state:
-    st.session_state.run_analysis = False
+SESSION_DEFAULTS = {
+    "run_analysis": False,
+    "uploaded_signature": None,
+    "analyzed_signature": None,
+    "raw_df": None,
+    "processing_error": None,
+    "uploader_nonce": 0,
+}
 
-if "uploaded_signature" not in st.session_state:
-    st.session_state.uploaded_signature = None
+for key, default_value in SESSION_DEFAULTS.items():
+    if key not in st.session_state:
+        st.session_state[key] = default_value
 
 with st.sidebar:
     st.header("1. Upload dữ liệu")
@@ -285,35 +291,49 @@ with st.sidebar:
     uploaded = st.file_uploader(
         "All Order (.xlsx)",
         type=["xlsx"],
-        key="all_order_uploader",
+        key=f"all_order_uploader_{st.session_state.uploader_nonce}",
     )
 
     st.caption("Chọn file, sau đó bấm **Phân tích** để xác nhận.")
 
+    current_signature = None
     if uploaded is not None:
-        signature = (uploaded.name, uploaded.size)
-        if st.session_state.uploaded_signature != signature:
-            st.session_state.uploaded_signature = signature
+        current_signature = (uploaded.name, uploaded.size)
+
+        if st.session_state.uploaded_signature != current_signature:
+            st.session_state.uploaded_signature = current_signature
             st.session_state.run_analysis = False
+            st.session_state.analyzed_signature = None
+            st.session_state.raw_df = None
+            st.session_state.processing_error = None
+
         st.success(f"Đã chọn: {uploaded.name}")
 
     analyze_col, reset_col = st.columns(2)
 
     with analyze_col:
-        if st.button(
+        analyze_clicked = st.button(
             "🚀 Phân tích",
             type="primary",
             use_container_width=True,
             disabled=uploaded is None,
-        ):
-            st.session_state.run_analysis = True
+        )
 
     with reset_col:
-        if st.button("🔄 Reset", use_container_width=True):
-            st.session_state.run_analysis = False
-            st.session_state.uploaded_signature = None
-            st.cache_data.clear()
-            st.rerun()
+        reset_clicked = st.button(
+            "🔄 Reset",
+            use_container_width=True,
+        )
+
+    if reset_clicked:
+        st.session_state.run_analysis = False
+        st.session_state.uploaded_signature = None
+        st.session_state.analyzed_signature = None
+        st.session_state.raw_df = None
+        st.session_state.processing_error = None
+        st.session_state.uploader_nonce += 1
+        st.cache_data.clear()
+        st.rerun()
 
     st.divider()
     st.header("2. Công thức")
@@ -332,18 +352,46 @@ if uploaded is None:
 """)
     st.stop()
 
-if not st.session_state.run_analysis:
+if analyze_clicked:
+    progress = st.progress(0, text="Đang chuẩn bị đọc file...")
+
+    try:
+        progress.progress(15, text="Đang tải dữ liệu từ file Excel...")
+        file_bytes = uploaded.getvalue()
+
+        progress.progress(40, text="Đang nhận diện dòng tiêu đề và các cột...")
+        parsed_df = read_excel_file(file_bytes, uploaded.name)
+
+        progress.progress(75, text="Đang lưu dữ liệu vào bộ nhớ phiên làm việc...")
+        st.session_state.raw_df = parsed_df
+        st.session_state.analyzed_signature = current_signature
+        st.session_state.run_analysis = True
+        st.session_state.processing_error = None
+
+        progress.progress(100, text=f"Hoàn tất: đã đọc {len(parsed_df):,} dòng dữ liệu.")
+        st.success("✅ Đã xử lý file thành công. Dashboard đang được tạo...")
+    except Exception as exc:
+        st.session_state.raw_df = None
+        st.session_state.run_analysis = False
+        st.session_state.processing_error = str(exc)
+        progress.empty()
+        st.error(f"Không đọc được file: {exc}")
+        st.stop()
+
+if st.session_state.processing_error:
+    st.error(f"Không đọc được file: {st.session_state.processing_error}")
+    st.stop()
+
+if (
+    not st.session_state.run_analysis
+    or st.session_state.raw_df is None
+    or st.session_state.analyzed_signature != current_signature
+):
     st.info("📁 File đã sẵn sàng. Bấm **🚀 Phân tích** ở thanh bên trái để bắt đầu.")
     st.stop()
 
-with st.spinner("Đang đọc và xử lý dữ liệu..."):
-    file_bytes = uploaded.getvalue()
-
-try:
-    df_raw = read_excel_file(file_bytes, uploaded.name)
-except Exception as exc:
-    st.error(f"Không đọc được file: {exc}")
-    st.stop()
+# Dùng DataFrame đã lưu trong RAM; đổi bộ lọc sẽ không đọc lại file Excel.
+df_raw = st.session_state.raw_df
 
 mapping = auto_map_columns(df_raw)
 
